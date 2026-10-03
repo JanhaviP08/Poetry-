@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poetry Sanctuary</title>
+    <style>
+        #particle-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0;
+        }
+        .top-controls {
+            position: relative; z-index: 10; display: flex; justify-content: flex-end; margin-bottom: 1rem;
+        }
+        .theme-toggle {
+            background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: inherit; padding: 0.5rem 1rem; border-radius: 20px; cursor: pointer; font-weight: 600;
+        }
+        body:has(.card-checkbox:checked) {
+            overflow: hidden;
+        }
+        body {
+            font-family: 'Georgia', serif;
+            background-color: #3b0764;
+            background-image: radial-gradient(circle at 50% 25%, #581c87 0%, #2e1065 80%);
+            color: #fce7f3;
+            padding: 40px 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.8;
+            scroll-behavior: smooth;
+            min-height: 100vh;
+            position: relative;
+        }
+        @keyframes candleGlow {
+            0% { opacity: 0.3; transform: scale(0.98); }
+            50% { opacity: 0.85; transform: scale(1.02); }
+            100% { opacity: 0.3; transform: scale(0.98); }
+        }
+        body::before {
+            content: "";
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 50% 25%, rgba(20, 184, 166, 0.4) 0%, rgba(6, 182, 212, 0.18) 35%, transparent 70%);
+            pointer-events: none;
+            animation: candleGlow 4s infinite ease-in-out;
+        }
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(25px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        header, section {
+            position: relative; z-index: 1;
+            animation: slideUpFade 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        header { text-align: center; margin-bottom: 50px; }
+        header h1 { font-size: 3rem; margin-bottom: 5px; color: #fce7f3; letter-spacing: 1.5px; font-style: italic; text-shadow: 0 0 6px rgba(252, 231, 243, 0.6), 0 0 12px rgba(252, 231, 243, 0.3); }
+        header h2 { font-size: 1.3rem; margin-top: 0; font-weight: normal; font-style: italic; text-shadow: 0 0 5px rgba(252, 231, 243, 0.5); }
+        header p, #about-me p, .front-overlay h3, header h2, header h1, #about-me h2, #about-me p { color: #fce7f3; font-style: italic; text-shadow: 0 0 5px rgba(252, 231, 243, 0.5); }
+        section { margin-bottom: 40px; opacity: 0; animation-delay: 0.2s; }
+        #about-me h2, #poem-collection h2 { border-bottom: 1px solid rgba(252, 231, 243, 0.4); padding-bottom: 6px; font-style: italic; }
+        .moods-container { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px; }
+        .mood-box {
+            background: #ffffff; border: 1px solid #d4c3b3; border-radius: 12px; padding: 14px 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5), 0 0 15px rgba(255, 150, 50, 0.1); flex: 1; min-width: 220px; transition: all 0.3s ease;
+        }
+        .mood-box:hover {
+            border-color: #a89382; background: #fcfbfa; box-shadow: 0 8px 25px rgba(0,0,0,0.7), 0 0 20px rgba(255, 150, 50, 0.2);
+        }
+        .mood-box summary { font-size: 1.15rem; font-weight: bold; color: #1a1410; cursor: pointer; outline: none; font-family: 'Arial', sans-serif; }
+        .mood-poems-list ul { list-style-type: none; padding-left: 15px; margin: 12px 0 0; }
+        .mood-poems-list li a { text-decoration: none; color: #5c3d2e; font-weight: bold; font-family: 'Arial', sans-serif; transition: color 0.2s; }
+        .mood-poems-list li a:hover { color: #000000; text-decoration: underline; }
+        .card-checkbox { display: none; }
+        .poem-card-container-label { display: block; width: 340px; height: 500px; cursor: pointer; perspective: 1400px; margin: 40px auto; transition: all 0.4s ease; }
+        .flipper { position: relative; width: 100%; height: 100%; transition: transform 0.9s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; }
+        .front-side, .back-side {
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8), 0 0 15px rgba(255, 160, 60, 0.15); overflow: hidden; box-sizing: border-box; border: 1px solid rgba(255, 200, 120, 0.25);
+        }
+        .front-side { background-size: cover; background-position: center; display: flex; align-items: flex-end; }
+        .front-overlay { width: 100%; padding: 30px 20px; background: linear-gradient(to top, rgba(13, 10, 8, 0.95), rgba(13, 10, 8, 0.4)); backdrop-filter: blur(5px); text-align: center; }
+        .front-overlay h3 { font-size: 1.6rem; margin-bottom: 8px; font-family: 'Georgia', serif; }
+        .back-side { background-color: #fbf6ef; color: #3b2314; transform: rotateY(180deg); display: flex; flex-direction: column; padding: 20px; border: 2px solid #bfa78f; }
+        .back-content { display: flex; flex-direction: column; height: 100%; overflow: hidden; text-align: left; }
+        .back-side h3 { color: #3b2314; font-size: 1.8rem; margin-top: 5px; border-bottom: 1px solid #bfa78f; padding-bottom: 10px; font-style: italic; }
+        .poem-text-scroll { flex: 1 1 auto; overflow-y: auto !important; padding-right: 8px; margin: 10px 0; line-height: 1.7; font-style: italic; font-size: 1.05rem; color: #3b2314; }
+        .click-hint { font-size: 0.8rem; opacity: 0.8; margin-top: 5px; font-family: 'Arial', sans-serif; letter-spacing: 0.5px; }
+        .front-side .click-hint { color: #fce7f3; text-shadow: 0 0 4px rgba(252, 231, 243, 0.4); }
+        .back-side .click-hint { color: #6e4c35; }
+        .card-checkbox:checked + .poem-card-container-label {
+            position: absolute !important; left: 0 !important; width: 100vw !important; height: 100vh !important; margin: 0 !important;
+            background: rgba(13, 10, 8, 0.92); backdrop-filter: blur(10px); z-index: 9999; display: flex; align-items: center; justify-content: center;
+        }
+        .card-checkbox:checked + .poem-card-container-label .flipper {
+            width: 90vw; max-width: 650px; height: 85vh; transform: rotateY(180deg); box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Welcome!!!</h1>
+        <h2>Fellow poem lovers💖</h2>
+        <p>Step into a space where words capture feelings, moments, and quiet reflections.</p>
+    </header>
+
+    <main>
+        <section id="about-me">
+            <h2>About</h2>
+            <p>Hello there! I am a passionate writer who finds solace in rhythm and rhyme. I started writing poems as a way to process my thoughts during quiet evenings, and it slowly blossomed into a journey of storytelling through verse. I hope my words find a cozy home in your heart.</p>
+        </section>
+
+        <section id="mood-selector">
+            <h2>Explore by Mood</h2>
+            <p style="color: #fce7f3; font-style: italic; text-shadow: 0 0 5px rgba(252, 231, 243, 0.5);">Select a theme below to find your poem:</p>
+            <div class="moods-container">
+                <details class="mood-box">
+                    <summary>🌧️ Rain Mood</summary>
+                    <div class="mood-poems-list"><ul><li><a href="#poem-card-1">"Translucent"</a></li></ul></div>
+                </details>
+                <details class="mood-box">
+                    <summary>🤔 Thoughtful</summary>
+                    <div class="mood-poems-list"><ul>
+                        <li><a href="#poem-card-2">"Manifestation"</a></li>
+                        <li><a href="#poem-card-3">"Solace"</a></li>
+                        <li><a href="#poem-card-4">"Help to Fly"</a></li>
+                    </ul></div>
+                </details>
+                <details class="mood-box">
+                    <summary>🌳 Nature</summary>
+                    <div class="mood-poems-list"><ul>
+                        <li><a href="#poem-card-5">"Forest Symphony"</a></li>
+                        <li><a href="#poem-card-6">"Small and Mighty"</a></li>
+                        <li><a href="#poem-card-7">"Greedy past empty present"</a></li>
+                    </ul></div>
+                </details>
+            </div>
+        </section>
+
+        <section id="poem-collection">
+            <h2 style="color: #fce7f3; font-style: italic; border-bottom: 1px solid rgba(252, 231, 243, 0.4); padding-bottom: 6px; text-shadow: 0 0 5px rgba(252, 231, 243, 0.5);">Poetry Gallery</h2>
+
+            <div class="poem-wrapper" id="poem-card-1">
+                <input type="checkbox" id="flip-toggle-translucent" class="card-checkbox">
+                <label for="flip-toggle-translucent" class="poem-card-container-label">
+                    <div class="flipper">
+                        <div class="front-side" style="background-image: url('rain image.jpg');">
+                            <div class="front-overlay"><h3>Translucent</h3><p class="click-hint">Click to Open & Read Fullscreen 📖</p></div>
+                        </div>
+                        <div class="back-side">
+                            <div class="back-content">
+                                <h3>Translucent</h3>
+                                <div class="poem-text-scroll">
+                                    <p>Rain stitched the air,<br>threads of water tracing the windowpane.<br>I leaned into the drizzle,<br>my gaze adrift in quivering sizzle.<br>A large sea with clouds was forming,<br>old gold color of sun was clotting.<br>The sky was plasma blue,<br>a lachrymose spreaded hue<br>The rain stretched its gray fingers,<br>clutching clouds where shadow lingers<br>Through mist and storm, the shadows bind,<br>and nothing clear remains to find.</p>
+                                </div>
+                                <p class="click-hint">Click anywhere outside or on the card to close & flip back</p>
+                            </div>
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <div class="poem-wrapper" id="poem-card-2">
+                <input type="checkbox" id="flip-toggle-manifestation" class="card-checkbox">
+                <label for="flip-toggle-manifestation" class="poem-card-container-label">
+                    <div class="flipper">
+                        <div class="front-side" style="background-image: url('manifestation.jpg');">
+                            <div class="front-overlay"><h3>Manifestation</h3><p class="click-hint">Click to Open & Read Fullscreen 📖</p></div>
+                        </div>
+                        <div class="back-side">
+                            <div class="back-content">
+                                <h3>Manifestation</h3>
+                                <div class="poem-text-scroll">
+                                    <p>Manifestation is not needed sometimes,<br>Not all zeals need dimes.<br>Trials by God are a must,<br>Slowly trying to slip in trust.<br>You might not see it yet—<br>Testing your patience, He is,<br>Don't get upset.<br>Will this heavy mist reveal the sight,<br>Or make the dwelling even more tight?<br>Whatever happens, foresight—<br>Beware, it’s your earned right.<br>Slowing down is always an option,<br>But feels today like an unbearable fraction.<br>But the storm, it was always just a distraction</p>
+                                </div>
+                                <p class="click-hint">Click anywhere outside or on the card to close & flip back</p>
+                            </div>
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <div class="poem-wrapper" id="poem-card-3">
+                <input type="checkbox" id="flip-toggle-solace" class="card-checkbox">
+                <label for="flip-toggle-solace" class="poem-card-container-label">
+                    <div class="flipper">
+                        <div class="front-side" style="background-image: url('solace.jpg');">
+                            <div class="front-overlay"><h3>Solace</h3><p class="click-hint">Click to Open & Read Fullscreen 📖</p></div>
+                        </div>
+                        <div class="back-side">
+                            <div class="back-content">
+                                <h3>Solace</h3>
+                                <div class="poem-text-scroll">
+                                    <p>Sunlight paints the rough edges bright,<br>turning each flaw into its own light.<br>Cold water slips into my feet with ease,<br>Cleansing away unrest within, a quiet release.<br>The breeze loosens memories from my hair,<br>My body floats, alive, awake, aware.<br>Clothes do not bind, they do not claim.<br>I am my own, I shape my name.<br>Alone, unshaken in endless quiet,<br>eyes on the line,<br>where sky and land merges & shine.<br>Moments bloom on their own,<br>there's no need to chase.<br>Life hums in tangled currents,<br>a soft restless chorus of<br>ruminating thought,<br>yet still, I drift in sacred pace<br>Here I stand, light and free,<br>just as I am, simply me.<br>All around, I feel the solace,<br>sun, sky and water my hearts own palace.</p>
+                                </div>
+                                <p class="click-hint">Click anywhere outside or on the card to close & flip back</p>
+                            </div>
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <div class="poem-wrapper" id="poem-card-4">
+                <input type="checkbox" id="flip-toggle-help-to-fly" class="card-checkbox">
+                <label for="flip-toggle-help-to-fly" class="poem-card-container-label">
+                    <div class="flipper">
+                        <div class="front-side" style="background-image: url('fly.png');">
+                            <div class="front-overlay"><h3>Help to Fly</h3><p class="click-hint">Click to Open & Read Fullscreen 📖</p></div>
+                        </div>
+                        <div class="back-side">
+                            <div class="back-content">
+                                <h3>Help to Fly</h3>
+                                <div class="poem-text-scroll">
+                                    <p>The fly drifts helpless on the glass-still stream,<br>Not swimming—or so the aimless motions seem.<br>It waits for waves to carry it to land,<br>While I, too, wait for tides beyond my hand.<br>Is it swimming? Or is it drowning fast?<br>The only question, meant to last.<br><br>In simpler days, when life was light,<br>Like rainbows shining pure and bright,<br>I would have considered only 'swimming'—<br>the joy of being free,<br>But now the shadows cast a change on me.<br>No longer that timid carefree girl<br>Caught at the crossroads where choices lie.<br>Between 'everything' and 'nothing's' shore,<br>I see only drowning, and nothing more.<br><br>In despair, I reached for a dry leaf<br>To pull the small traveler from the tide.<br>I set it down on the solid ground,<br>Where safety and stillness could be found.<br>It stirred to dry its wings, fragile and thin,<br>But a spider waited to strike where I had been.<br><br>I craved a savior for my own heavy heart,<br>So I played the savior, and shooed the spider apart.<br>Watching the fly rise, until it caught the sky,<br>A poor soul, saying the dark a goodbye.<br>Someday, I know, when the storm clouds depart,<br>I’ll take that same flight with an open heart.</p>
+                                </div>
+                                <p class="click-hint">Click anywhere outside or on the card to close & flip back</p>
+                            </div>
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <div class="poem-wrapper" id="poem-card-5">
+                <input type="checkbox" id="flip-toggle-forest-symphony" class="card-checkbox">
+                <label for="flip-toggle-forest-symphony" class="poem-card-container-label">
+                    <div class="flipper">
+                        <div class="front-side" style="background-image: url('forest.jpg');">
+                            <div class="front-overlay"><h3>Forest Symphony</h3><p class="click-hint">Click to Open & Read Fullscreen 📖</p></div>
+                        </div>
+                        <div class="back-side">
+                            <div class="back-content">
+                                <h3>Forest Symphony</h3>
+                                <div class="poem-text-scroll">
+                                    <p>In unseen, undefined wood paths I go,<br>Through verdant glow, I am tin, I know.<br>To discover the holy sound, so soft, so deep,<br>The breeze carries it where shadows sleep.<br>From rippling water to the thundered fall,<br>Where seeds rear wings and leaves answer the call.<br>Roots murmur low, the sky bends near,<br>Every breath a thread, meaning all here.<br>A vow between light and shadow,<br>A glow that turns no path yet lets one follow.</p>
+                                </div>
+                                <p class="click-hint">Click anywhere outside or on the card to close & flip back</p>
+                            </div>
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <div class="poem-wrapper" id="poem-card-6">
+                <input type="checkbox" id="flip-toggle-small-and-mighty" class="card-checkbox">
+                <label for="flip-toggle-small-and-mighty" class="poem-card-container-label">
+                    <div class="flipper">
+                        <div class="front-side" style="background-image: url('tree.jpg');">
+                            <div class="front-overlay"><h3>Small and Mighty</h3><p class="click-hint">Click to Open & Read Fullscreen 📖</p></div>
+                        </div>
+                        <div class="back-side">
+                            <div class="back-content">
+                                <h3>Small and Mighty</h3>
+                                <div class="poem-text-scroll">
+                                    <p>Small & the mighty<br>Deep inside the canopy<br>Beneath on the forest floor<br>Lay the tender growing creeper<br>Longing to taste the light<br>But holding to ground very tight<br>To prevent erosion by flood<br>Or the mighty trees are to blood</p>
+                                </div>
+                                <p class="click-hint">Click anywhere to close & flip back</p>
+                            </div>
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <div class="poem-wrapper" id="poem-card-7">
+                <input type="checkbox" id="flip-toggle-greedy-past-empty-present" class="card-checkbox">
+                <label for="flip-toggle-greedy-past-empty-present" class="poem-card-container-label">
+                    <div class="flipper">
+                        <div class="front-side" style="background-image: url('rain night.jpg');">
+                            <div class="front-overlay"><h3>Greedy Past Empty Present</h3><p class="click-hint">Click to Open & Read Fullscreen 📖</p>
+                        </div>
+                    </div>
+                    <div class="back-side">
+                        <div class="back-content">
+                            <h3>Greedy Past Empty Present</h3>
+                            <div class="poem-text-scroll">
+                                <p>Electricity blackouts have fear<br>for the rain is devoted to tear<br>The rain is now stubborn; nature has changed its course<br>because we exploited our resource.<br>damage is backfiring in present;<br>greedy past has no place to resent.<br>we have to eat fruits of our deed,<br>which we planted long back as seed.</p>
+                            </div>
+                            <p class="click-hint">Click anywhere outside or on the card to close & flip back</p>
+                        </div>
+                    </div>
+                </div>
+            </label>
+        </div>
+        </section>
+    </main>
+</body>
+</html>
